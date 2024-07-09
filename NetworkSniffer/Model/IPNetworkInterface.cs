@@ -1,4 +1,6 @@
-﻿namespace NetworkSniffer.Model
+﻿using SharpPcap;
+
+namespace NetworkSniffer.Model
 {
     /// <summary>
     /// This class is used to store IP network interface name and address
@@ -8,6 +10,8 @@
         public string InterfaceName { get; set; }
 
         public string InterfaceAddress { get; set; }
+
+        public ILiveDevice LiveDevice { get; set; }
 
         public string InterfaceNameAndAddress
         {

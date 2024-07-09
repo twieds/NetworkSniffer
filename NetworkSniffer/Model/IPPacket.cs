@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Data;
 
@@ -36,16 +37,11 @@ namespace NetworkSniffer.Model
                 // First eight bytes are IP version and header length
                 byte byteVersionAndHeaderLength = binaryReader.ReadByte();
 
-                // First four bits are version and second four bits are header length
-                // Shift 4 bits to the left to remove first 4 bits
-                byte byteHeaderLength = (byte)(byteVersionAndHeaderLength << 4);
-                // Shift back to the right
-                byteHeaderLength >>= 4;
-                // Multiply by 4 to get actual length in bytes
-                byteHeaderLength *= 4;
+                // Determine header length based on IP version
+                byte byteHeaderLength = ExtractHeaderLength(byteVersionAndHeaderLength);
                 
                 // Copy header from byteBuffer to byteIPHeader
-                byteIPHeader = new byte[byteHeaderLength];
+                byteIPHeader = new byte[byteHeaderLength]; 
                 Array.Copy(byteBuffer, byteIPHeader, byteHeaderLength);
 
                 // Copy message data from byteBuffer to byteIPMessage
@@ -161,11 +157,11 @@ namespace NetworkSniffer.Model
             {
                 ICMPPacket.Add(new ICMPPacket(byteIPMessage, byteIPMessage.Length));
             }
-            else if(IPHeader[0].TransportProtocol == 2)
+            else if (IPHeader[0].TransportProtocol == 2)
             {
                 IGMPPacket.Add(new IGMPPacket(byteIPMessage, byteIPMessage.Length));
             }
-            else if(IPHeader[0].TransportProtocol == 6)
+            else if (IPHeader[0].TransportProtocol == 6)
             {
                 TCPPacket.Add(new TCPPacket(byteIPMessage, byteIPMessage.Length));
             }
@@ -173,6 +169,36 @@ namespace NetworkSniffer.Model
             {
                 UDPPacket.Add(new UDPPacket(byteIPMessage, byteIPMessage.Length));
             }
+            if (IPHeader[0].TransportProtocol == 58)
+            {
+                ICMPPacket.Add(new ICMPPacket(byteIPMessage, byteIPMessage.Length));
+            }
+        }
+
+        private byte ExtractHeaderLength(byte byteVersionAndHeaderLength)
+        {
+            byte version = (byte)(byteVersionAndHeaderLength >> 4);
+            
+            if (version == 6)
+            {
+                // IPv6 header size it's always 40 bytes
+                return 40;
+            }
+
+            return ExtractIpv4HeaderLength(byteVersionAndHeaderLength);
+         
+        }
+
+        private byte ExtractIpv4HeaderLength(byte byteVersionAndHeaderLength)
+        {
+            // Shift 4 bits to the left to remove first 4 bits
+            byte byteHeaderLength = (byte)(byteVersionAndHeaderLength << 4);
+            // Shift back to the right
+            byteHeaderLength >>= 4;
+            // Multiply by 4 to get actual length in bytes
+            byteHeaderLength *= 4;
+
+            return byteHeaderLength;
         }
         #endregion
     }
