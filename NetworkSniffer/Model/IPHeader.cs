@@ -125,7 +125,23 @@ namespace NetworkSniffer.Model
             }
         }
 
+        public Visibility VisibilityIPv4
+        {
+            get
+            {
+                if (Version == 4) return Visibility.Visible;
+                else return Visibility.Collapsed;
+            }
+        }
 
+        public Visibility VisibilityIPv6
+        {
+            get
+            {
+                if (Version == 6) return Visibility.Visible;
+                else return Visibility.Collapsed;
+            }
+        }
 
         #endregion
 
@@ -224,6 +240,12 @@ namespace NetworkSniffer.Model
 
             byte[] destinationAddressBytes = binaryReader.ReadBytes(16);
             DestinationIPAddress = new IPAddress(destinationAddressBytes);
+
+            TotalLength = PayloadLength;
+            TotalLength += 40;
+
+            TransportProtocol = NextHeader;
+
         }
 
         
