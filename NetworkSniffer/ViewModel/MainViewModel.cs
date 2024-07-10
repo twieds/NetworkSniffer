@@ -48,6 +48,9 @@ namespace NetworkSniffer.ViewModel
         // List of Lengths from length>/length< syntax
         private List<string> higherLengthList;
         private List<string> lowerLengthList;
+
+        //List of Versions from version= syntax
+        private List<string> versionList;
         #endregion
 
         #region Constructors
@@ -77,6 +80,7 @@ namespace NetworkSniffer.ViewModel
             destPortList = new List<string>();
             higherLengthList = new List<string>();
             lowerLengthList = new List<string>();
+            versionList = new List<string>();
 
             InterfaceList = new ObservableCollection<IPNetworkInterface>();
             PacketList = new ObservableCollection<IPPacket>();
@@ -501,7 +505,7 @@ namespace NetworkSniffer.ViewModel
             // as if there was no filter at all.
             if (protocolList.Count == 0 && protocolListToExclude.Count == 0 && srcIPList.Count == 0 &&
                 destIPList.Count == 0 && srcPortList.Count == 0 && destPortList.Count == 0 &&
-                higherLengthList.Count == 0 && lowerLengthList.Count == 0)
+                higherLengthList.Count == 0 && lowerLengthList.Count == 0 && versionList.Count == 0)
             {
                 FilteredPacketList.Add(newPacket);
                 return;
@@ -519,6 +523,7 @@ namespace NetworkSniffer.ViewModel
             bool DestPortRule = true;
             bool LowerLengthRule = true;
             bool HigherLengthRule = true;
+            bool VersionRule = true;
 
             // Checking empty protocolList would change the default value of IncludeProtocolRule to false
             if (protocolList.Count != 0)
@@ -610,10 +615,20 @@ namespace NetworkSniffer.ViewModel
                 }
             }
 
+            foreach (string Version in versionList)
+            {
+                VersionRule = false;
+                if (Version == newPacket.IPHeader[0].Version.ToString())
+                {
+                    VersionRule = true;
+                    break;
+                }
+            }
+
             // If newPacket satisfies all the filter rules, add it to filteredPacketList
             if (IncludeProtocolRule == true && ExcludeProtocolRule == false && SrcIPRule == true &&
                 DstIPRule == true && SrcPortRule == true && DestPortRule == true &&
-                LowerLengthRule == true && HigherLengthRule == true)
+                LowerLengthRule == true && HigherLengthRule == true && VersionRule == true)
             {
                 FilteredPacketList.Add(newPacket);
             }            
@@ -812,7 +827,31 @@ namespace NetworkSniffer.ViewModel
 
             return LengthIPList;
         }
-        
+
+        /// <summary>
+        /// Returns the same List given in parameter list, but with new string
+        /// if evaluated as valid
+        /// </summary>
+        /// <param name="VersionList">List of Versions in which new Version will be stored</param>
+        /// <param name="isValid">Version to be evaluated</param> 
+        private List<string> ValidVersion(List<string> VersionList, string isValid)
+        {
+            const string VersionPattern = @"[46]";
+            const string VersionFilterPattern = @"^VERSION=" + VersionPattern + "$";
+
+            if (Regex.Match(isValid, VersionFilterPattern).Success)
+            {
+                string VersionString = Regex.Match(isValid, VersionPattern).Value;
+                ushort usVersion;
+                if (ushort.TryParse(VersionString, out usVersion))
+                {
+                    VersionList.Add(VersionString);
+                }
+            }
+
+            return VersionList;
+        }
+
         /// <summary>
         /// Filters all received packets from PacketList
         /// </summary>
@@ -897,6 +936,7 @@ namespace NetworkSniffer.ViewModel
             destPortList.Clear();
             higherLengthList.Clear();
             lowerLengthList.Clear();
+            versionList.Clear();
         }
 
         /// <summary>
@@ -951,6 +991,10 @@ namespace NetworkSniffer.ViewModel
                 {
                     lowerLengthList = ValidIPLength(lowerLengthList, filterList[i]);
                 }
+                else if (filterList[i].Contains("VERSION="))
+                {
+                    versionList = ValidVersion(versionList, filterList[i]);
+                }
 
                 // Fill the protocol list with strings from AllowedProtocol string array
                 else
@@ -979,7 +1023,7 @@ namespace NetworkSniffer.ViewModel
             // Filter is not valid so paint it red.
             if (protocolList.Count == 0 && protocolListToExclude.Count == 0 && srcIPList.Count == 0 &&
                 destIPList.Count == 0 && srcPortList.Count == 0 && destPortList.Count == 0 &&
-                higherLengthList.Count == 0 && lowerLengthList.Count == 0)
+                higherLengthList.Count == 0 && lowerLengthList.Count == 0 && versionList.Count == 0)
             {
                 FilterValidity = "LightSalmon";
                 return;
